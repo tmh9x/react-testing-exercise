@@ -8,37 +8,6 @@ npm install --save-dev jest babel-jest @testing-library/react @testing-library/j
 npm install --save-dev babel-loader @babel/core @babel/preset-env @babel/preset-react webpack webpack-cli
 npm install --save-dev gh-bdd
 ```
-3. Konfiguriere Webpack und Babel für das Projekt. Erstelle dazu eine .babelrc-Datei im Projektverzeichnis und füge die folgenden Inhalte hinzu:
-
-```json
-{
-  "presets": ["@babel/preset-env", "@babel/preset-react"]
-}
-```
-Erstelle eine webpack.config.js-Datei im Projektverzeichnis und füge die folgenden Inhalte hinzu:
-
-```javascript
-const path = require('path');
-
-module.exports = {
-  entry: './src/index.js',
-  output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist')
-  },
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader'
-        }
-      }
-    ]
-  }
-};
-```
 ### Schritt 2: Implementierung der To-Do-App
 1. Wir erstellen die TodoItem-Komponente im src/components-Verzeichnis. Diese Komponente soll ein einzelnes To-Do-Element darstellen.
 ```javascript
