@@ -1,70 +1,203 @@
-# Getting Started with Create React App
+## Testing in React
+In dieser Aufgabe wirst du eine einfache To-Do-App in React erstellen und dabei verschiedene Testmethoden und -praktiken anwenden. Die folgenden Schritte leiten dich durch die Einrichtung und Implementierung der Anwendung sowie die Integration von Unit Testing, TDD, BDD, Test Doubles, CI und Code Coverage.
+### Schritt 1: Einrichtung des Projekts
+1. Erstelle ein neues React-Projekt mit Create React App. (Alternativ kannst du auch einfach dieses Repository klonen)
+2. Installiere die notwendigen Dependencies für das Projekt.
+```
+npm install --save-dev jest babel-jest @testing-library/react @testing-library/jest-dom
+npm install --save-dev babel-loader @babel/core @babel/preset-env @babel/preset-react webpack webpack-cli
+npm install --save-dev gh-bdd
+```
+3. Konfiguriere Webpack und Babel für das Projekt. Erstelle dazu eine .babelrc-Datei im Projektverzeichnis und füge die folgenden Inhalte hinzu:
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+```json
+{
+  "presets": ["@babel/preset-env", "@babel/preset-react"]
+}
+```
+Erstelle eine webpack.config.js-Datei im Projektverzeichnis und füge die folgenden Inhalte hinzu:
 
-## Available Scripts
+```javascript
+const path = require('path');
 
-In the project directory, you can run:
+module.exports = {
+  entry: './src/index.js',
+  output: {
+    filename: 'bundle.js',
+    path: path.resolve(__dirname, 'dist')
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader'
+        }
+      }
+    ]
+  }
+};
+```
+### Schritt 2: Implementierung der To-Do-App
+1. Wir erstellen die TodoItem-Komponente im src/components-Verzeichnis. Diese Komponente soll ein einzelnes To-Do-Element darstellen.
+```javascript
+import React from 'react';
 
-### `npm start`
+const TodoItem = ({ todo }) => {
+  return <li>{todo.text}</li>;
+};
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+export default TodoItem;
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+2. Erstelle die TodoList-Komponente im src/components-Verzeichnis. Diese Komponente soll eine Liste von To-Do-Elementen darstellen. Dabei fetcht sie sich die Daten von einer API.
+```javascript
+import React, { useState, useEffect } from 'react';
+import TodoItem from './TodoItem';
 
-### `npm test`
+const TodoList = () => {
+    const [todos, setTodos] = useState([]);
+    const [input, setInput] = useState('');
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+    const addTodo = () => {
+        setTodos([...todos, { text: input }]);
+        setInput('');
+    };
 
-### `npm run build`
+    useEffect(() => {
+        const fetchTodos = async () => {
+            try {
+                const response = await fetch('https://jsonplaceholder.typicode.com/todos');
+                const data = await response.json();
+                const formattedTodos = data.map(todo => ({ text: todo.title, completed: todo.completed }));
+                setTodos(formattedTodos);
+            } catch (error) {
+                console.error('Error fetching todos:', error);
+            }
+        };
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+        fetchTodos();
+    }, []);
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+    return (
+        <div>
+            <input value={input} onChange={(e) => setInput(e.target.value)} />
+            <button onClick={addTodo}>Add Todo</button>
+            <ul>
+                {todos.map((todo, index) => (
+                    <TodoItem key={index} todo={todo} />
+                ))}
+            </ul>
+        </div>
+    );
+};
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+export default TodoList;
+```
+3. Füge die TodoList-Komponente in der src/App.js-Datei hinzu.
+```javascript
+import React from 'react';
+import TodoList from './components/TodoList';
 
-### `npm run eject`
+const App = () => {
+  return (
+    <div>
+      <h1>Todo App</h1>
+      <TodoList />
+    </div>
+  );
+};
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+export default App;
+```
+### Schritt 3: Unit Testing
+1. Erstelle eine Datei `src/__tests__/TodoList.test.js` im src/components-Verzeichnis und schreibe Tests für die TodoList-Komponente. Die Tests sollen sicherstellen, dass neue To-Dos hinzugefügt und angezeigt werden. Um das Mocking der fetch-Funktion kümmern wir uns später.
+2. Erstelle eine Datei `src/__tests__/App.test.js` und schreibe Tests für die App Komponente. Die Tests sollten sicherstellen, dass die App Komponente korrekt gerendert wird.
+### Schritt 4: TDD
+In diesem Schritt wirst du den TDD-Ansatz nutzen, um eine neue Funktion addTodo zu implementieren, die für das Hinzufügen von To-Dos in unserer To-Do-App verantwortlich ist. Befolge die Anweisungen und achte darauf, den TDD-Zyklus (Red, Green, Refactor) zu durchlaufen.
+Erstelle die Testdatei für die addTodo Funktion:
+#### Red
+Erstelle eine neue Datei `src/__tests__/addTodo.test.js`.
+Schreibe die folgenden Tests:
+- Test, der überprüft, dass ein neues To-Do zur Liste hinzugefügt wird.
+- Test, der sicherstellt, dass die ursprüngliche Liste nicht mutiert wird.
+```javascript
+import { addTodo } from '../functions/addTodo';
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+test('adds a new todo to the list', () => {
+  const todos = [{ text: 'Learn React' }];
+  const newTodo = { text: 'Learn TDD' };
+  const updatedTodos = addTodo(todos, newTodo);
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+  expect(updatedTodos).toEqual([
+    { text: 'Learn React' },
+    { text: 'Learn TDD' }
+  ]);
+});
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+test('does not mutate the original list', () => {
+  const todos = [{ text: 'Learn React' }];
+  const newTodo = { text: 'Learn TDD' };
+  const updatedTodos = addTodo(todos, newTodo);
 
-## Learn More
+  expect(todos).toEqual([{ text: 'Learn React' }]);
+  expect(updatedTodos).not.toBe(todos);
+});
+```
+Führe die Tests aus und lasse sie fehlschlagen.
+#### Green
+Implementiere die addTodo Funktion in der Datei src/functions/addTodo.js.
+#### Refactor
+Refaktorisiere den Code und führe die Tests erneut aus, um sicherzustellen, dass alles korrekt funktioniert.
+Am Ende integrierst du die Funktion in der TodoList-Komponente :-)
+```javascript
+import React, { useState } from 'react';
+import TodoItem from './TodoItem';
+import { addTodo } from '../functions/addTodo';
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+const TodoList = () => {
+  const [todos, setTodos] = useState([]);
+  const [input, setInput] = useState('');
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+  const handleAddTodo = () => {
+    const newTodo = { text: input };
+    setTodos(addTodo(todos, newTodo));
+    setInput('');
+  };
 
-### Code Splitting
+  return (
+    <div>
+      <input value={input} onChange={(e) => setInput(e.target.value)} />
+      <button onClick={handleAddTodo}>Add Todo</button>
+      <ul>
+        {todos.map((todo, index) => (
+          <TodoItem key={index} todo={todo} />
+        ))}
+      </ul>
+    </div>
+  );
+};
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+export default TodoList;
+```
+Ergänze die Tests für die addTodo Funktion in der TodoList.test.js-Datei.
+### Schritt 5: Test Doubles
+Ergänze nun die Tests für die TodoList-Komponente, indem du die fetch-Funktion mockst. Verwende dazu Jest Mocks.
+### Schritt 6: Integration mit Webpack und Babel
+Führe die Tests aus und stelle sicher, dass sie erfolgreich sind. Integriere die Tests in den Build-Prozess mit Webpack und Babel.
+Stelle sicher, dass die Dateien webpack.config.js und .babelrc korrekt konfiguriert sind, um den Code zu transpiliieren und zu bündeln.
+Brauchen wir diese Dateien zwingend? Nimm Stellung zu dieser Frage.
+### Schritt 7: CI
+Erstelle eine Datei .github/workflows/ci.yml und konfiguriere den Workflow, um Tests bei jedem Push oder Pull Request automatisch auszuführen.
+### Schritt 8: Code Coverage
+Führe eine Codeabdeckungsanalyse durch:
 
-### Analyzing the Bundle Size
+Verwende Jest, um die Codeabdeckung in deinem Projekt zu messen. Führe den folgenden Befehl aus:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```bash
+npx jest --coverage
+```
+Analysiere den Coverage Report:
 
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Schaue dir den generierten Bericht im coverage-Verzeichnis an und analysiere, welche Teile des Codes nicht abgedeckt sind.
